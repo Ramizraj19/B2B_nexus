@@ -590,8 +590,9 @@ const ProductsPage = () => {
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               <SelectItem value="electronics">Electronics</SelectItem>
+              <SelectItem value="furniture">Furniture</SelectItem>
               <SelectItem value="clothing">Clothing</SelectItem>
               <SelectItem value="books">Books</SelectItem>
               <SelectItem value="home">Home & Garden</SelectItem>
@@ -643,6 +644,568 @@ const ProductsPage = () => {
         {!loading && products.length === 0 && (
           <div className="text-center py-8 text-slate-500">
             No products found. Try adjusting your search criteria.
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+};
+
+// Cart Page Component
+const CartPage = () => {
+  const [cart, setCart] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchCart();
+  }, []);
+
+  const fetchCart = async () => {
+    try {
+      const response = await axios.get(`${API}/cart`);
+      setCart(response.data);
+    } catch (error) {
+      console.error('Failed to fetch cart:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createOrder = async () => {
+    if (!cart || cart.items.length === 0) return;
+    
+    const orderData = {
+      items: cart.items,
+      shipping_address: "Test Address 123" // In real app, this would be from a form
+    };
+
+    try {
+      await axios.post(`${API}/orders`, orderData);
+      alert('Order placed successfully!');
+      navigate('/orders');
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      alert('Failed to place order');
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">My Cart</h1>
+          <p className="text-slate-600">Review your items before checkout</p>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8">Loading cart...</div>
+        ) : cart && cart.items.length > 0 ? (
+          <div className="space-y-4">
+            {cart.items.map((item, index) => (
+              <Card key={index}>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold">{item.product_name}</h3>
+                      <p className="text-slate-500">Quantity: {item.quantity}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">₹{(item.price * item.quantity).toLocaleString()}</p>
+                      <p className="text-sm text-slate-500">₹{item.price} each</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-center text-lg font-bold">
+                  <span>Total:</span>
+                  <span>₹{cart.total_amount.toLocaleString()}</span>
+                </div>
+                <Button className="w-full mt-4" onClick={createOrder}>
+                  Place Order
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-slate-500">
+            Your cart is empty. <Button variant="link" onClick={() => navigate('/products')}>Browse products</Button>
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+};
+
+// Orders Page Component
+const OrdersPage = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const response = await axios.get(`${API}/orders`);
+      setOrders(response.data);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'confirmed': return 'bg-blue-100 text-blue-800';
+      case 'shipped': return 'bg-purple-100 text-purple-800';
+      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">My Orders</h1>
+          <p className="text-slate-600">Track your order history</p>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8">Loading orders...</div>
+        ) : orders.length > 0 ? (
+          <div className="space-y-4">
+            {orders.map((order) => (
+              <Card key={order.id}>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-semibold">Order #{order.id.slice(-8)}</h3>
+                      <p className="text-sm text-slate-500">
+                        {new Date(order.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Badge className={getStatusColor(order.status)}>
+                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    </Badge>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {order.items.map((item, index) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>{item.product_name} (x{item.quantity})</span>
+                        <span>₹{(item.price * item.quantity).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t flex justify-between font-semibold">
+                    <span>Total:</span>
+                    <span>₹{order.total_amount.toLocaleString()}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-slate-500">
+            No orders found. <Button variant="link" onClick={() => navigate('/products')}>Start shopping</Button>
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+};
+
+// My Products Page (for sellers)
+const MyProductsPage = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    description: '',
+    price: '',
+    stock_quantity: '',
+    category: '',
+    tags: ''
+  });
+
+  useEffect(() => {
+    fetchMyProducts();
+  }, []);
+
+  const fetchMyProducts = async () => {
+    try {
+      const response = await axios.get(`${API}/products`);
+      // Filter products by current seller (backend should handle this, but filtering here for now)
+      setProducts(response.data);
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createProduct = async (e) => {
+    e.preventDefault();
+    try {
+      const productData = {
+        ...newProduct,
+        price: parseFloat(newProduct.price),
+        stock_quantity: parseInt(newProduct.stock_quantity),
+        tags: newProduct.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+      };
+      
+      await axios.post(`${API}/products`, productData);
+      alert('Product created successfully!');
+      setShowAddForm(false);
+      setNewProduct({
+        name: '',
+        description: '',
+        price: '',
+        stock_quantity: '',
+        category: '',
+        tags: ''
+      });
+      fetchMyProducts();
+    } catch (error) {
+      console.error('Failed to create product:', error);
+      alert('Failed to create product');
+    }
+  };
+
+  const deleteProduct = async (productId) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    
+    try {
+      await axios.delete(`${API}/products/${productId}`);
+      alert('Product deleted successfully!');
+      fetchMyProducts();
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+      alert('Failed to delete product');
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">My Products</h1>
+            <p className="text-slate-600">Manage your product inventory</p>
+          </div>
+          <Button onClick={() => setShowAddForm(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Product
+          </Button>
+        </div>
+
+        {showAddForm && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Add New Product</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={createProduct} className="space-y-4">
+                <Input
+                  placeholder="Product Name"
+                  value={newProduct.name}
+                  onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                  required
+                />
+                <Textarea
+                  placeholder="Product Description"
+                  value={newProduct.description}
+                  onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                  required
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    type="number"
+                    placeholder="Price"
+                    value={newProduct.price}
+                    onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
+                    required
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Stock Quantity"
+                    value={newProduct.stock_quantity}
+                    onChange={(e) => setNewProduct({...newProduct, stock_quantity: e.target.value})}
+                    required
+                  />
+                </div>
+                <Select value={newProduct.category} onValueChange={(value) => setNewProduct({...newProduct, category: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="electronics">Electronics</SelectItem>
+                    <SelectItem value="furniture">Furniture</SelectItem>
+                    <SelectItem value="clothing">Clothing</SelectItem>
+                    <SelectItem value="books">Books</SelectItem>
+                    <SelectItem value="home">Home & Garden</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Tags (comma separated)"
+                  value={newProduct.tags}
+                  onChange={(e) => setNewProduct({...newProduct, tags: e.target.value})}
+                />
+                <div className="flex gap-2">
+                  <Button type="submit">Create Product</Button>
+                  <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {loading ? (
+          <div className="text-center py-8">Loading products...</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {products.map((product) => (
+              <Card key={product.id}>
+                <CardHeader>
+                  <CardTitle className="text-lg">{product.name}</CardTitle>
+                  <CardDescription>{product.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xl font-bold text-green-600">
+                        ₹{product.price.toLocaleString()}
+                      </span>
+                      <Badge variant="outline">{product.category}</Badge>
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      Stock: {product.stock_quantity} units
+                    </p>
+                    <div className="flex gap-2 mt-4">
+                      <Button size="sm" variant="outline">
+                        <Eye className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={() => deleteProduct(product.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {!loading && products.length === 0 && (
+          <div className="text-center py-8 text-slate-500">
+            No products found. Create your first product to get started!
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+};
+
+// Analytics Page (for admin)
+const AnalyticsPage = () => {
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, []);
+
+  const fetchAnalytics = async () => {
+    try {
+      const response = await axios.get(`${API}/admin/analytics`);
+      setAnalytics(response.data);
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Analytics Dashboard</h1>
+          <p className="text-slate-600">Platform performance overview</p>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8">Loading analytics...</div>
+        ) : analytics ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">Total Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{analytics.total_users}</div>
+                <p className="text-xs text-slate-500">Active platform users</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">Total Products</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{analytics.total_products}</div>
+                <p className="text-xs text-slate-500">Listed products</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">Total Orders</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{analytics.total_orders}</div>
+                <p className="text-xs text-slate-500">Completed orders</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-slate-600">Total Revenue</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">₹{analytics.total_revenue.toLocaleString()}</div>
+                <p className="text-xs text-slate-500">Platform revenue</p>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-slate-500">
+            Failed to load analytics data.
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+};
+
+// Users Page (for admin)
+const UsersPage = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(`${API}/admin/users`);
+      setUsers(response.data);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRoleColor = (role) => {
+    switch (role) {
+      case 'admin': return 'bg-red-100 text-red-800';
+      case 'seller': return 'bg-blue-100 text-blue-800';
+      case 'buyer': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">User Management</h1>
+          <p className="text-slate-600">Manage platform users</p>
+        </div>
+
+        {loading ? (
+          <div className="text-center py-8">Loading users...</div>
+        ) : (
+          <div className="bg-white rounded-lg shadow">
+            <div className="overflow-x-auto">
+              <table className="w-full table-auto">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Role
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Company
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Joined
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {users.map((user) => (
+                    <tr key={user.id} className="hover:bg-slate-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-slate-900">{user.full_name}</div>
+                          <div className="text-sm text-slate-500">{user.email}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge className={getRoleColor(user.role)}>
+                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                        {user.company_name || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge className={user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                          {user.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {!loading && users.length === 0 && (
+          <div className="text-center py-8 text-slate-500">
+            No users found.
           </div>
         )}
       </div>
