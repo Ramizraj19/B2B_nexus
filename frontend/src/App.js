@@ -1255,6 +1255,46 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/cart" 
+              element={
+                <ProtectedRoute allowedRoles={['buyer']}>
+                  <CartPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/orders" 
+              element={
+                <ProtectedRoute>
+                  <OrdersPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/my-products" 
+              element={
+                <ProtectedRoute allowedRoles={['seller']}>
+                  <MyProductsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/analytics" 
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AnalyticsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/users" 
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <UsersPage />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </BrowserRouter>
