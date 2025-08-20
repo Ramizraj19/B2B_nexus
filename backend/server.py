@@ -236,10 +236,11 @@ async def create_product(
     product_data: ProductCreate,
     current_user: User = Depends(require_role([UserRole.SELLER, UserRole.ADMIN]))
 ):
-    product = Product(**product_data.dict())
-    product.seller_id = current_user.id
-    product.seller_name = current_user.full_name
+    product_dict = product_data.dict()
+    product_dict['seller_id'] = current_user.id
+    product_dict['seller_name'] = current_user.full_name
     
+    product = Product(**product_dict)
     await db.products.insert_one(product.dict())
     return product
 
