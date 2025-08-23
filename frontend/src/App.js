@@ -43,7 +43,7 @@ const AuthProvider = ({ children }) => {
   const fetchCurrentUser = async () => {
     try {
       const response = await axios.get(`${API}/auth/me`);
-      setUser(response.data);
+      setUser(response.data.user);
     } catch (error) {
       console.error('Failed to fetch user:', error);
       logout();
@@ -55,32 +55,32 @@ const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await axios.post(`${API}/auth/login`, { email, password });
-      const { access_token, user: userData } = response.data;
+      const { token, user: userData } = response.data;
       
-      localStorage.setItem('token', access_token);
-      setToken(access_token);
+      localStorage.setItem('token', token);
+      setToken(token);
       setUser(userData);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       return { success: true };
     } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Login failed' };
+      return { success: false, error: error.response?.data?.message || 'Login failed' };
     }
   };
 
   const register = async (userData) => {
     try {
       const response = await axios.post(`${API}/auth/register`, userData);
-      const { access_token, user: newUser } = response.data;
+      const { token, user: newUser } = response.data;
       
-      localStorage.setItem('token', access_token);
-      setToken(access_token);
+      localStorage.setItem('token', token);
+      setToken(token);
       setUser(newUser);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       return { success: true };
     } catch (error) {
-      return { success: false, error: error.response?.data?.detail || 'Registration failed' };
+      return { success: false, error: error.response?.data?.message || 'Registration failed' };
     }
   };
 
