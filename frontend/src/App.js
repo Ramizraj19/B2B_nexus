@@ -558,122 +558,46 @@ const Dashboard = () => {
 
 const ProductsPage = () => {
   const [products, setProducts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-
-  useEffect(() => {
-    fetchProducts();
-  }, [searchTerm, selectedCategory]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const fetchProducts = async () => {
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
-      if (selectedCategory) params.append('category', selectedCategory);
-      
-      const response = await axios.get(`${API}/products?${params}`);
-      setProducts(response.data.data.products);
-    } catch (error) {
-      console.error('Failed to fetch products:', error);
-    } finally {
-      setLoading(false);
+      const res = await fetch(`${API}/products`);
+      if (!res.ok) throw new Error('Failed to fetch products');
+      const data = await res.json();
+      // Ensure products is always an array
+      setProducts(Array.isArray(data.products) ? data.products : []);
+    } catch (err) {
+      setError(err.message);
+      setProducts([]); // fallback to empty array on error
     }
-  };
-
-  const addToCart = async (productId) => {
-    try {
-             await axios.post(`${API}/cart/add`, null, {
-         params: { productId: productId, quantity: 1 }
-       });
-      alert('Product added to cart!');
-    } catch (error) {
-      console.error('Failed to add to cart:', error);
-      alert('Failed to add to cart');
-    }
+    setLoading(false);
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Products</h1>
-          <p className="text-slate-600">Browse available products</p>
-        </div>
-
-        <div className="flex space-x-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+    <div>
+      <h2 className="text-xl font-bold mb-4">Browse Products</h2>
+      <button
+        className="px-4 py-2 bg-blue-600 text-white rounded"
+        onClick={fetchProducts}
+        disabled={loading}
+      >
+        {loading ? 'Loading...' : 'Browse Products'}
+      </button>
+      {error && <div className="text-red-500 mt-2">{error}</div>}
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        {Array.isArray(products) && products.map((product) => (
+          <div key={product._id || product.id} className="border p-4 rounded shadow">
+            <h3 className="font-semibold">{product.name}</h3>
+            <p>{product.description}</p>
+            <p className="text-sm text-gray-600">Price: ${product.price}</p>
           </div>
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="electronics">Electronics</SelectItem>
-              <SelectItem value="furniture">Furniture</SelectItem>
-              <SelectItem value="clothing">Clothing</SelectItem>
-              <SelectItem value="books">Books</SelectItem>
-              <SelectItem value="home">Home & Garden</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-8">Loading products...</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((product) => (
-              <Card key={product.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-lg">{product.name}</CardTitle>
-                  <CardDescription>{product.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-2xl font-bold text-green-600">
-                        ₹{product.price.current.toLocaleString()}
-                      </span>
-                      <Badge variant="outline">{product.category?.name || product.category}</Badge>
-                    </div>
-                    <p className="text-sm text-slate-500">
-                      Stock: {product.inventory.stock} units
-                    </p>
-                       <p className="text-sm text-slate-500">
-                         Seller: {product.seller?.firstName} {product.seller?.lastName}
-                       </p>
-                    {user?.role === 'buyer' && (
-                      <Button 
-                        className="w-full" 
-                        onClick={() => addToCart(product.id)}
-                        disabled={product.inventory.stock === 0}
-                      >
-                        <ShoppingCart className="h-4 w-4 mr-2" />
-                        Add to Cart
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {!loading && products.length === 0 && (
-          <div className="text-center py-8 text-slate-500">
-            No products found. Try adjusting your search criteria.
-          </div>
-        )}
+        ))}
       </div>
-    </DashboardLayout>
+    </div>
   );
 };
 
