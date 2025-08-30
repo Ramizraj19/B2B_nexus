@@ -140,7 +140,7 @@ npm start
 ```
 
 ### 5. Verify Installation
-Visit `http://localhost:5000/health` to confirm the server is running.
+Visit `http://localhost:5001/health` to confirm the server is running.
 
 ## 🔗 API Endpoints
 

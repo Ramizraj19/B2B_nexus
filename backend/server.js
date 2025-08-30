@@ -93,6 +93,16 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/admin', authenticateToken, adminRoutes);
 app.use('/api/payments', authenticateToken, paymentRoutes);
 
+// Products API route
+app.get('/api/products', async (req, res) => {
+  try {
+    const products = await Product.find();
+    res.json({ products });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
 // Setup socket handlers
 setupSocketHandlers(io);
 

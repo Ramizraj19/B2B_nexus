@@ -15,7 +15,7 @@ from typing import Dict, Any, Optional
 class B2BNexusAPITester:
     def __init__(self, base_url: Optional[str] = None):
         if base_url is None:
-            base_url = os.environ.get("BASE_URL", "https://b2b-connect-1.preview.emergentagent.com")
+            base_url = os.environ.get("BASE_URL", "http://localhost:5001")
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tokens = {}  # Store tokens for different users
