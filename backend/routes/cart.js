@@ -382,13 +382,21 @@ router.post('/move-to-wishlist', [
     });
   }
 
-  // TODO: Add wishlist functionality
-  // For now, just remove items from cart
-  cart.items = cart.items.filter(item => 
-    !itemIds.includes(item._id.toString())
-  );
+  // Move items to wishlist
+  const Wishlist = require('../models/Wishlist');
+  let wishlist = await Wishlist.findOne({ user: userId });
+  if (!wishlist) {
+    wishlist = new Wishlist({ user: userId, items: [] });
+  }
 
-  await cart.save();
+  itemsToMove.forEach(item => {
+    wishlist.addItem(item.product.toString(), item.seller.toString(), { notes: item.notes });
+  });
+
+  // Remove moved items from cart
+  cart.items = cart.items.filter(item => !itemIds.includes(item._id.toString()));
+
+  await Promise.all([wishlist.save(), cart.save()]);
 
   // Populate cart for response
   const populatedCart = await Cart.findById(cart._id)
@@ -402,10 +410,12 @@ router.post('/move-to-wishlist', [
     })
     .populate('items.seller', 'firstName lastName company.name company.logo');
 
+  const populatedWishlist = await Wishlist.findByUserWithProducts(userId);
+
   res.json({
     success: true,
     message: `${itemsToMove.length} items moved to wishlist successfully`,
-    data: { cart: populatedCart }
+    data: { cart: populatedCart, wishlist: populatedWishlist }
   });
 }));
 

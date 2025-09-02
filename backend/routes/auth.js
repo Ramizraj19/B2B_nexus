@@ -251,18 +251,19 @@ router.put('/profile', authenticateToken, [
     });
   }
 
-  const { firstName, lastName, company, profile, preferences } = req.body;
+  // Whitelist allowed fields to prevent mass assignment
+  const allowedUpdates = {};
+  if (req.body.firstName !== undefined) allowedUpdates.firstName = req.body.firstName;
+  if (req.body.lastName !== undefined) allowedUpdates.lastName = req.body.lastName;
+  if (req.body.company !== undefined) allowedUpdates.company = req.body.company;
+  if (req.body.profile !== undefined) allowedUpdates.profile = req.body.profile;
+  if (req.body.preferences !== undefined) allowedUpdates.preferences = req.body.preferences;
 
-  // Update user
-  const user = await User.findById(req.user._id);
-  
-  if (firstName) user.firstName = firstName;
-  if (lastName) user.lastName = lastName;
-  if (company) user.company = { ...user.company, ...company };
-  if (profile) user.profile = { ...user.profile, ...profile };
-  if (preferences) user.preferences = { ...user.preferences, ...preferences };
-
-  await user.save();
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: allowedUpdates },
+    { new: true, runValidators: true }
+  );
 
   res.json({
     success: true,

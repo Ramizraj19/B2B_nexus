@@ -261,8 +261,8 @@ router.post('/items/:itemId/move-to-cart', [
     });
   }
 
-  // Move item to cart
-  const cartItemData = wishlist.moveToCart(itemId);
+  // Move item to cart atomically
+  const cartItemData = await wishlist.moveToCart(itemId, quantity);
   if (!cartItemData) {
     return res.status(404).json({
       success: false,

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Category = require('./Category');
 
 const productSchema = new mongoose.Schema({
   name: {
@@ -345,3 +346,48 @@ productSchema.methods.updateRating = function(newRating) {
 };
 
 module.exports = mongoose.model('Product', productSchema);
+
+// Keep Category.productCount in sync when products are created/updated/archived
+productSchema.post('save', async function(doc) {
+  try {
+    const wasNew = doc.isNew;
+    const modifiedStatus = doc.isModified && doc.isModified('status');
+    const modifiedCategory = doc.isModified && doc.isModified('category');
+
+    if (wasNew || modifiedStatus || modifiedCategory) {
+      const categoriesToUpdate = new Set();
+      categoriesToUpdate.add(doc.category?.toString());
+
+      if (modifiedCategory && doc.$__.priorDoc && doc.$__.priorDoc.category) {
+        categoriesToUpdate.add(doc.$__.priorDoc.category.toString());
+      }
+
+      await Promise.all(
+        Array.from(categoriesToUpdate)
+          .filter(Boolean)
+          .map(async (categoryId) => {
+            const category = await Category.findById(categoryId);
+            if (category && category.updateProductCount) {
+              await category.updateProductCount();
+            }
+          })
+      );
+    }
+  } catch (e) {
+    // Do not block the main operation on count updates
+    console.error('Failed to update Category.productCount:', e);
+  }
+});
+
+productSchema.post('remove', async function(doc) {
+  try {
+    if (doc.category) {
+      const category = await Category.findById(doc.category);
+      if (category && category.updateProductCount) {
+        await category.updateProductCount();
+      }
+    }
+  } catch (e) {
+    console.error('Failed to update Category.productCount on remove:', e);
+  }
+});

@@ -6,6 +6,8 @@ const Order = require('../models/Order');
 const { authenticateToken, isOwnerOrAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { uploadUserAvatar, uploadCompanyLogo } = require('../utils/cloudinaryService');
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 
@@ -199,7 +201,8 @@ router.put('/:id/company', [
 // @access  Private
 router.post('/:id/avatar', [
   authenticateToken,
-  isOwnerOrAdmin('id')
+  isOwnerOrAdmin('id'),
+  upload.single('avatar')
 ], asyncHandler(async (req, res) => {
   // This would typically use multer middleware for file upload
   // For now, we'll assume the file is in req.file
@@ -248,7 +251,8 @@ router.post('/:id/avatar', [
 // @access  Private
 router.post('/:id/company/logo', [
   authenticateToken,
-  isOwnerOrAdmin('id')
+  isOwnerOrAdmin('id'),
+  upload.single('logo')
 ], asyncHandler(async (req, res) => {
   if (!req.file) {
     return res.status(400).json({

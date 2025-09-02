@@ -440,6 +440,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), asyncHandler(
     case 'payment_intent.payment_failed':
       await handlePaymentFailure(event.data.object);
       break;
+    case 'payment_intent.canceled':
+      await handlePaymentCanceled(event.data.object);
+      break;
     case 'charge.refunded':
       await handleRefund(event.data.object);
       break;
@@ -485,6 +488,23 @@ const handlePaymentFailure = async (paymentIntent) => {
     }
   } catch (error) {
     console.error('Error handling payment failure:', error);
+  }
+};
+
+// Handle payment canceled
+const handlePaymentCanceled = async (paymentIntent) => {
+  try {
+    const orderId = paymentIntent.metadata.orderId;
+    const order = await Order.findById(orderId);
+    
+    if (order) {
+      order.payment.status = 'canceled';
+      order.status = 'cancelled';
+      await order.save();
+      console.log(`Payment canceled for order: ${order.orderNumber}`);
+    }
+  } catch (error) {
+    console.error('Error handling payment cancelled:', error);
   }
 };
 
