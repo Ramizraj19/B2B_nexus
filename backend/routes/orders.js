@@ -428,6 +428,134 @@ router.post('/:id/cancel', [
   });
 }));
 
+// @desc    Get seller's orders
+// @route   GET /api/orders/seller
+// @access  Private (Seller only)
+router.get('/seller', authenticateToken, asyncHandler(async (req, res) => {
+  // Check if user is seller
+  if (req.user.role !== 'seller' && req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Only sellers can view seller orders.'
+    });
+  }
+
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  // Build query based on user role
+  const query = req.user.role === 'admin' ? {} : { seller: req.user._id };
+
+  // Get orders with pagination
+  const orders = await Order.find(query)
+    .populate('buyer', 'firstName lastName company.name email')
+    .populate('items.product', 'name images price')
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  // Get total count for pagination
+  const total = await Order.countDocuments(query);
+
+  res.json({
+    success: true,
+    data: {
+      orders,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    }
+  });
+}));
+
+// @desc    Get order statistics (alias for /stats/overview)
+// @route   GET /api/orders/stats
+// @access  Private
+router.get('/stats', authenticateToken, asyncHandler(async (req, res) => {
+  let stats = {};
+
+  if (req.user.role === 'buyer') {
+    stats = await Order.aggregate([
+      { $match: { buyer: req.user._id } },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalSpent: { $sum: '$total' },
+          averageOrderValue: { $avg: '$total' }
+        }
+      }
+    ]);
+  } else if (req.user.role === 'seller') {
+    stats = await Order.aggregate([
+      { $match: { seller: req.user._id } },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalRevenue: { $sum: '$total' },
+          averageOrderValue: { $avg: '$total' }
+        }
+      }
+    ]);
+  } else {
+    // Admin stats
+    stats = await Order.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalRevenue: { $sum: '$total' },
+          averageOrderValue: { $avg: '$total' }
+        }
+      }
+    ]);
+  }
+
+  // Get status breakdown
+  const statusBreakdown = await Order.aggregate([
+    {
+      $match: req.user.role === 'buyer' 
+        ? { buyer: req.user._id }
+        : req.user.role === 'seller'
+        ? { seller: req.user._id }
+        : {}
+    },
+    {
+      $group: {
+        _id: '$status',
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  // Get recent orders
+  const recentOrders = await Order.find(
+    req.user.role === 'buyer' 
+      ? { buyer: req.user._id }
+      : req.user.role === 'seller'
+      ? { seller: req.user._id }
+      : {}
+  )
+    .populate('buyer', 'firstName lastName company.name')
+    .populate('seller', 'firstName lastName company.name')
+    .sort({ createdAt: -1 })
+    .limit(5);
+
+  res.json({
+    success: true,
+    data: {
+      ...stats[0], // Spread the stats directly instead of nesting under overview
+      statusBreakdown,
+      recentOrders
+    }
+  });
+}));
+
 // @desc    Get order statistics
 // @route   GET /api/orders/stats/overview
 // @access  Private

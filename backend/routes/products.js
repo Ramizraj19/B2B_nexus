@@ -129,6 +129,60 @@ router.get('/featured', asyncHandler(async (req, res) => {
   });
 }));
 
+// @desc    Get seller's own products
+// @route   GET /api/products/my-products
+// @access  Private (Seller only)
+router.get('/my-products', [
+  authenticateToken,
+  isSeller
+], asyncHandler(async (req, res) => {
+  const { page = 1, limit = 20, status, category, search } = req.query;
+  
+  // Build query for seller's products
+  const query = { seller: req.user._id };
+  
+  if (status) {
+    query.status = status;
+  }
+  
+  if (category) {
+    query.category = category;
+  }
+  
+  if (search) {
+    query.$text = { $search: search };
+  }
+  
+  // Execute query with pagination
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  
+  const [products, total] = await Promise.all([
+    Product.find(query)
+      .populate('category', 'name slug')
+      .populate('subcategory', 'name slug')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .select('-__v'),
+    Product.countDocuments(query)
+  ]);
+  
+  const totalPages = Math.ceil(total / parseInt(limit));
+  
+  res.json({
+    success: true,
+    data: { 
+      products,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages
+      }
+    }
+  });
+}));
+
 // @desc    Get product by ID
 // @route   GET /api/products/:id
 // @access  Public

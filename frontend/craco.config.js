@@ -40,7 +40,24 @@ module.exports = {
         };
       }
       
+      // Disable WebSocket connections for HMR
+      if (webpackConfig.devServer) {
+        webpackConfig.devServer = {
+          ...webpackConfig.devServer,
+          hot: false,
+          liveReload: false,
+          webSocketServer: false,
+        };
+      }
+      
       return webpackConfig;
     },
+  },
+  devServer: {
+    hot: false,
+    liveReload: false,
+    webSocketServer: false,
+    host: 'localhost',
+    allowedHosts: 'all',
   },
 };

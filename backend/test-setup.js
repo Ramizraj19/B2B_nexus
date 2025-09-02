@@ -225,7 +225,7 @@ async function runAllTests() {
     console.log('\n🚀 To start the server:');
     console.log('   npm run dev    # Development mode');
     console.log('   npm start      # Production mode');
-    console.log('\n🔗 Health check: http://localhost:5000/health');
+    console.log('\n🔗 Health check: http://localhost:5001/health');
   }
   
   console.log('\n📚 Check README.md for detailed setup instructions');

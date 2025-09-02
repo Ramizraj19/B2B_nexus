@@ -1,11 +1,19 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Conversation = require('../models/Conversation');
+const Order = require('../models/Order');
 
 // Middleware to authenticate JWT token
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authorization header must be in the format: Bearer <token>'
+      });
+    }
+    const token = authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
       return res.status(401).json({ 
@@ -230,8 +238,7 @@ const canAccessConversation = () => {
           message: 'Conversation identifier is required' 
         });
       }
-
-      const Conversation = require('../models/Conversation');
+      
       const conversation = await Conversation.findById(conversationId);
       
       if (!conversation) {
@@ -280,8 +287,7 @@ const canAccessOrder = () => {
           message: 'Order identifier is required' 
         });
       }
-
-      const Order = require('../models/Order');
+      
       const order = await Order.findById(orderId);
       
       if (!order) {

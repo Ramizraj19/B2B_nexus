@@ -17,6 +17,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
+const Product = require('./models/Product');
 const orderRoutes = require('./routes/orders');
 const messageRoutes = require('./routes/messages');
 const cartRoutes = require('./routes/cart');
@@ -63,8 +64,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  credentials: true
+  origin: "http://localhost:3000", // your React frontend
+  credentials: true,               // 👈 allow cookies
 }));
 
 // Logging middleware
@@ -93,16 +94,6 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/admin', authenticateToken, adminRoutes);
 app.use('/api/payments', authenticateToken, paymentRoutes);
 
-// Products API route
-app.get('/api/products', async (req, res) => {
-  try {
-    const products = await Product.find();
-    res.json({ products });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch products' });
-  }
-});
-
 // Setup socket handlers
 setupSocketHandlers(io);
 
@@ -123,12 +114,17 @@ server.listen(PORT, () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
+const shutdown = () => {
+  console.log('Shutting down gracefully');
   server.close(() => {
-    console.log('Process terminated');
-    mongoose.connection.close();
+    mongoose.connection.close(false, () => {
+      console.log('MongoDB connection closed');
+      process.exit(0);
+    });
   });
-});
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 
 module.exports = app;
