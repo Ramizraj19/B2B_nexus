@@ -203,7 +203,8 @@ userSchema.methods.incLoginAttempts = function() {
 // Method to reset login attempts
 userSchema.methods.resetLoginAttempts = function() {
   return this.updateOne({
-    $unset: { loginAttempts: 1, lockUntil: 1 }
+    $set: { loginAttempts: 0 },
+    $unset: { lockUntil: 1 }
   });
 };
 

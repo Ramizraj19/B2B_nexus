@@ -292,19 +292,22 @@ orderSchema.index({ expectedDelivery: 1 });
 orderSchema.pre('save', async function(next) {
   if (!this.orderNumber) {
     const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    
-    // Get count of orders for today
-    const todayOrders = await this.constructor.countDocuments({
-      createdAt: {
-        $gte: new Date(date.getFullYear(), date.getMonth(), date.getDate()),
-        $lt: new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1)
-      }
-    });
-    
-    this.orderNumber = `ORD-${year}${month}${day}-${String(todayOrders + 1).padStart(4, '0')}`;
+    const ymd = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+
+    // Use an atomic counter collection to avoid duplicates under load
+    const Counter = this.db.model('Counter', new mongoose.Schema({
+      _id: { type: String },
+      seq: { type: Number, default: 0 }
+    }), 'counters');
+
+    const counterDoc = await Counter.findOneAndUpdate(
+      { _id: `order_${ymd}` },
+      { $inc: { seq: 1 } },
+      { upsert: true, new: true }
+    );
+
+    const seq = counterDoc.seq;
+    this.orderNumber = `ORD-${ymd}-${String(seq).padStart(5, '0')}`;
   }
 
   // Add to timeline if status changed

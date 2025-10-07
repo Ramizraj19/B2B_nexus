@@ -511,6 +511,27 @@ router.delete('/:id', [
   product.status = 'archived';
   await product.save();
 
+  // Remove archived product from all wishlists and carts
+  try {
+    const Wishlist = require('../models/Wishlist');
+    const Cart = require('../models/Cart');
+
+    await Promise.all([
+      // Pull from all wishlists
+      Wishlist.updateMany(
+        { 'items.product': product._id },
+        { $pull: { items: { product: product._id } } }
+      ),
+      // Pull from all carts
+      Cart.updateMany(
+        { 'items.product': product._id },
+        { $pull: { items: { product: product._id } } }
+      )
+    ]);
+  } catch (e) {
+    console.error('Failed to remove product from wishlists/carts:', e);
+  }
+
   res.json({
     success: true,
     message: 'Product deleted successfully'

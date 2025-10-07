@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
@@ -25,36 +25,23 @@ const Navigation = () => {
 
   const isActive = (path) => location.pathname === path;
 
-  const getNavItems = () => {
-    const items = [
-      { path: '/dashboard', label: 'Dashboard', icon: Home, roles: ['buyer', 'seller', 'admin'] }
-    ];
+  const NAV_CONFIG = useMemo(() => ([
+    { path: '/dashboard', label: 'Dashboard', icon: Home, roles: ['buyer', 'seller', 'admin'] },
+    { path: '/products', label: 'Browse Products', icon: Package, roles: ['buyer'] },
+    { path: '/cart', label: 'Cart', icon: ShoppingCart, roles: ['buyer'] },
+    { path: '/orders', label: 'My Orders', icon: Package, roles: ['buyer'] },
+    { path: '/my-products', label: 'My Products', icon: Package, roles: ['seller'] },
+    { path: '/orders', label: 'Orders', icon: Package, roles: ['seller'] },
+    { path: '/products', label: 'All Products', icon: Package, roles: ['admin'] },
+    { path: '/users', label: 'Users', icon: Users, roles: ['admin'] },
+    { path: '/analytics', label: 'Analytics', icon: BarChart3, roles: ['admin'] }
+  ]), []);
 
-    if (user?.role === 'buyer') {
-      items.push(
-        { path: '/products', label: 'Browse Products', icon: Package, roles: ['buyer'] },
-        { path: '/cart', label: 'Cart', icon: ShoppingCart, roles: ['buyer'] },
-        { path: '/orders', label: 'My Orders', icon: Package, roles: ['buyer'] }
-      );
-    }
-
-    if (user?.role === 'seller') {
-      items.push(
-        { path: '/my-products', label: 'My Products', icon: Package, roles: ['seller'] },
-        { path: '/orders', label: 'Orders', icon: Package, roles: ['seller'] }
-      );
-    }
-
-    if (user?.role === 'admin') {
-      items.push(
-        { path: '/products', label: 'All Products', icon: Package, roles: ['admin'] },
-        { path: '/users', label: 'Users', icon: Users, roles: ['admin'] },
-        { path: '/analytics', label: 'Analytics', icon: BarChart3, roles: ['admin'] }
-      );
-    }
-
-    return items;
-  };
+  const navItems = useMemo(() => {
+    if (!user) return [];
+    return NAV_CONFIG.filter(item => item.roles.includes(user.role) || item.roles.includes('buyer') || item.roles.includes('seller') || item.roles.includes('admin'))
+      .filter((item, index, self) => index === self.findIndex(i => i.path === item.path && i.label === item.label));
+  }, [user, NAV_CONFIG]);
 
   if (!user) return null;
 
@@ -74,7 +61,7 @@ const Navigation = () => {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-1">
-            {getNavItems().map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
@@ -126,7 +113,7 @@ const Navigation = () => {
       {/* Mobile Navigation */}
       <div className="md:hidden">
         <div className="px-2 pt-2 pb-3 space-y-1">
-          {getNavItems().map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link

@@ -15,6 +15,8 @@ const OrdersPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   useEffect(() => {
     if (user) {
@@ -22,7 +24,7 @@ const OrdersPage = () => {
     } else {
       setLoading(false);
     }
-  }, [user, currentPage, selectedStatus]);
+  }, [user, currentPage, selectedStatus, sortBy, sortOrder]);
 
   const fetchOrders = async () => {
     try {
@@ -32,7 +34,9 @@ const OrdersPage = () => {
       const params = {
         page: currentPage,
         limit: 10,
-        ...(selectedStatus && { status: selectedStatus })
+        ...(selectedStatus && { status: selectedStatus }),
+        sortBy,
+        sortOrder
       };
 
       // Use different API calls based on user role

@@ -277,21 +277,44 @@ wishlistSchema.methods.clearWishlist = function() {
 };
 
 // Instance method to move item to cart
-wishlistSchema.methods.moveToCart = function(itemId) {
+wishlistSchema.methods.moveToCart = async function(itemId, quantity = 1) {
+  const Cart = mongoose.model('Cart');
   const item = this.items.find(item => item._id.toString() === itemId.toString());
-  if (item) {
-    // Remove from wishlist
-    this.removeItem(itemId);
-    
-    // Return item data for cart addition
-    return {
-      productId: item.product,
-      sellerId: item.seller,
-      quantity: 1, // Default quantity for wishlist items
-      notes: item.notes
-    };
+  if (!item) return null;
+
+  // Remove from wishlist
+  this.removeItem(itemId);
+
+  // Add to or create cart
+  let cart = await Cart.findOne({ user: this.user });
+  if (!cart) {
+    cart = new Cart({ user: this.user, items: [] });
   }
-  return null;
+
+  const existingIndex = cart.items.findIndex(
+    (ci) => ci.product.toString() === item.product.toString() && ci.seller.toString() === item.seller.toString()
+  );
+  if (existingIndex !== -1) {
+    cart.items[existingIndex].quantity += quantity;
+    if (item.notes) cart.items[existingIndex].notes = item.notes;
+  } else {
+    cart.items.push({
+      product: item.product,
+      seller: item.seller,
+      quantity,
+      notes: item.notes || '',
+      addedAt: new Date()
+    });
+  }
+
+  await Promise.all([this.save(), cart.save()]);
+
+  return {
+    productId: item.product,
+    sellerId: item.seller,
+    quantity,
+    notes: item.notes
+  };
 };
 
 // Instance method to get items by priority

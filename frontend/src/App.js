@@ -12,6 +12,8 @@ import AnalyticsPage from './pages/AnalyticsPage/AnalyticsPage';
 import UsersPage from './pages/UsersPage/UsersPage';
 import UnauthorizedPage from './pages/UnauthorizedPage/UnauthorizedPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import ForgotPasswordPage from './pages/LoginPage/ForgotPasswordPage';
+import ResetPasswordPage from './pages/LoginPage/ResetPasswordPage';
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
             <Route 
