@@ -561,13 +561,21 @@ router.get('/public', [
   }
 
   const { limit = 10 } = req.query;
-
+  try{
   const wishlists = await Wishlist.findPublicWishlists(parseInt(limit));
 
-  res.json({
+  res.status(200).json({
     success: true,
     data: { wishlists }
   });
+} catch (error) {
+    console.error('Error fetching public wishlists:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching public wishlists'
+    });
+  }
 }));
+
 
 module.exports = router;

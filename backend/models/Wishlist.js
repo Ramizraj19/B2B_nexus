@@ -418,5 +418,18 @@ wishlistSchema.methods.exportWishlist = function() {
     exportedAt: new Date()
   };
 };
+// ================= Plugin Fix =================
+try {
+  if (mongoose.plugins && Array.isArray(mongoose.plugins)) {
+    mongoose.plugins.forEach((pluginConfig, index) => {
+      if (pluginConfig && typeof pluginConfig.fn === 'function') {
+        messageSchema.plugin(pluginConfig.fn, pluginConfig.opts || {});
+      }
+    });
+  }
+} catch (error) {
+  console.warn('Plugin application failed for Message model:', error.message);
+}
+
 
 module.exports = mongoose.model('Wishlist', wishlistSchema);

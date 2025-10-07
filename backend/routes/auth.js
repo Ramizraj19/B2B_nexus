@@ -70,7 +70,8 @@ router.post('/register', [
     email,
     password,
     role: role || 'buyer',
-    company: company || {}
+    company: company || {},
+    status: 'active'  // Ensure new users are active by default
   });
 
   await user.save();

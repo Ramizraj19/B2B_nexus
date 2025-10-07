@@ -1,8 +1,8 @@
 const nodemailer = require('nodemailer');
 
 // Create transporter
-const createTransporter = () => {
-  return nodemailer.createTransporter({
+const createTransport = () => {
+  return nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
     secure: process.env.EMAIL_PORT === '465', // true for 465, false for other ports
@@ -16,7 +16,7 @@ const createTransporter = () => {
 // Send welcome email
 const sendWelcomeEmail = async (email, firstName) => {
   try {
-    const transporter = createTransporter();
+    const transporter = createTransport();
     
     const mailOptions = {
       from: `"B2B Nexus" <${process.env.EMAIL_USER}>`,
@@ -82,7 +82,7 @@ const sendWelcomeEmail = async (email, firstName) => {
 // Send password reset email
 const sendPasswordResetEmail = async (email, firstName, resetToken) => {
   try {
-    const transporter = createTransporter();
+    const transporter = createTransport();
     
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
     
@@ -146,7 +146,7 @@ const sendPasswordResetEmail = async (email, firstName, resetToken) => {
 // Send order confirmation email
 const sendOrderConfirmationEmail = async (email, firstName, orderNumber, orderDetails) => {
   try {
-    const transporter = createTransporter();
+    const transporter = createTransport();
     
     const mailOptions = {
       from: `"B2B Nexus" <${process.env.EMAIL_USER}>`,
@@ -211,7 +211,7 @@ const sendOrderConfirmationEmail = async (email, firstName, orderNumber, orderDe
 // Send order status update email
 const sendOrderStatusUpdateEmail = async (email, firstName, orderNumber, newStatus, orderDetails) => {
   try {
-    const transporter = createTransporter();
+    const transporter = createTransport();
     
     const mailOptions = {
       from: `"B2B Nexus" <${process.env.EMAIL_USER}>`,
@@ -271,7 +271,7 @@ const sendOrderStatusUpdateEmail = async (email, firstName, orderNumber, newStat
 // Send new message notification email
 const sendNewMessageEmail = async (email, firstName, senderName, conversationTitle) => {
   try {
-    const transporter = createTransporter();
+    const transporter = createTransport();
     
     const mailOptions = {
       from: `"B2B Nexus" <${process.env.EMAIL_USER}>`,

@@ -608,6 +608,33 @@ router.put('/:id/preferences', [
   });
 }));
 
+// @desc    Activate user account
+// @route   PATCH /api/users/:id/activate
+// @access  Private/Admin
+router.patch('/:id/activate', [
+  authenticateToken,
+  isOwnerOrAdmin('id')
+], asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: 'User not found'
+    });
+  }
+  if (user.status === 'active') {
+    return res.status(400).json({
+      success: false,
+      message: 'User account is already active'
+    });
+  }
+  user.status = 'active';
+  await user.save();
+  res.json({
+    success: true,
+    message: 'User account activated successfully'
+  });
+}));
 // @desc    Delete user account
 // @route   DELETE /api/users/:id
 // @access  Private
@@ -640,6 +667,37 @@ router.delete('/:id', [
   res.json({
     success: true,
     message: 'User account deactivated successfully'
+  });
+}));
+
+// @desc    Activate user account
+// @route   PATCH /api/users/:id/activate
+// @access  Private/Admin
+router.patch('/:id/activate', [
+  authenticateToken,
+  isOwnerOrAdmin('id')
+], asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: 'User not found'
+    });
+  }
+  
+  if (user.status === 'active') {
+    return res.status(400).json({
+      success: false,
+      message: 'User account is already active'
+    });
+  }
+  
+  user.status = 'active';
+  await user.save();
+  
+  res.json({
+    success: true,
+    message: 'User account activated successfully'
   });
 }));
 

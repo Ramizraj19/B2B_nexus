@@ -1,4 +1,4 @@
-import api from './config';
+import { api } from './config';
 
 export const usersAPI = {
   // Get current user profile

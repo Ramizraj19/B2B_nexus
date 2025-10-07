@@ -1,4 +1,4 @@
-import api from './config';
+import { api } from './config';
 
 export const cartAPI = {
   // Get user's cart

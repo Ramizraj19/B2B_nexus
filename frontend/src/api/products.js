@@ -1,4 +1,4 @@
-import api from './config';
+import { api } from './config';
 
 export const productsAPI = {
   // Get all products with optional filters

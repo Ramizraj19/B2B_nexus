@@ -5,7 +5,8 @@ const router = express.Router();
 const app = require('../server');
 const request = require('supertest');
 
-mongoose.connect('mongodb+srv://ramizrajmulla6:5Vmvi30iN268Q2CE@b2bnexus.x1bjd68.mongodb.net/?retryWrites=true&w=majority&appName=B2BNexus', {
+mongoose.connect('mongodb+srv://ramizrajmulla6:5Vmvi30iN268Q2CE@b2bnexus.x1bjd68.mongodb.net/...',
+{
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });

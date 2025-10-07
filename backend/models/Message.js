@@ -37,63 +37,37 @@ const messageSchema = new mongoose.Schema({
     mimeType: String
   }],
   metadata: {
-    orderId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Order'
-    },
-    productId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product'
-    },
-    quoteId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Quote'
-    }
+    orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product' },
+    quoteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Quote' }
   },
-  read: {
-    type: Boolean,
-    default: false
-  },
+  read: { type: Boolean, default: false },
   readAt: Date,
-  delivered: {
-    type: Boolean,
-    default: false
-  },
+  delivered: { type: Boolean, default: false },
   deliveredAt: Date,
-  edited: {
-    type: Boolean,
-    default: false
-  },
+  edited: { type: Boolean, default: false },
   editedAt: Date,
   originalContent: String,
-  deleted: {
-    type: Boolean,
-    default: false
-  },
+  deleted: { type: Boolean, default: false },
   deletedAt: Date,
-  deletedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  },
+  deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   reactions: [{
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     emoji: String,
-    createdAt: {
-      type: Date,
-      default: Date.now
-    }
+    createdAt: { type: Date, default: Date.now }
   }],
   replyTo: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Message'
+    ref: 'Message',
+    validate: {
+      validator: function(value) {
+        // Prevent a message from replying to itself
+        return !value || value.toString() !== this._id?.toString();
+      },
+      message: 'A message cannot reply to itself'
+    }
   },
-  isSystemMessage: {
-    type: Boolean,
-    default: false
-  },
+  isSystemMessage: { type: Boolean, default: false },
   systemMessageType: {
     type: String,
     enum: ['order_created', 'order_updated', 'payment_received', 'shipping_update', 'other']
@@ -131,18 +105,15 @@ messageSchema.pre('save', function(next) {
   next();
 });
 
-// Static method to find conversation messages
+// ---- Static methods ----
+
+// Find conversation messages
 messageSchema.statics.findByConversation = function(conversationId, options = {}) {
   const query = { conversation: conversationId, deleted: false };
-  
-  if (options.before) {
-    query.createdAt = { $lt: options.before };
-  }
-  
-  if (options.after) {
-    query.createdAt = { $gt: options.after };
-  }
-  
+
+  if (options.before) query.createdAt = { $lt: options.before };
+  if (options.after) query.createdAt = { $gt: options.after };
+
   return this.find(query)
     .populate('sender', 'firstName lastName company.name profile.avatar')
     .populate('recipient', 'firstName lastName company.name profile.avatar')
@@ -151,7 +122,7 @@ messageSchema.statics.findByConversation = function(conversationId, options = {}
     .limit(options.limit || 50);
 };
 
-// Static method to find unread messages
+// Find unread messages
 messageSchema.statics.findUnread = function(userId) {
   return this.find({
     recipient: userId,
@@ -160,37 +131,25 @@ messageSchema.statics.findUnread = function(userId) {
   }).populate('sender', 'firstName lastName company.name profile.avatar');
 };
 
-// Static method to mark as read
+// Mark as read (bulk)
 messageSchema.statics.markAsRead = function(messageIds, userId) {
   return this.updateMany(
-    {
-      _id: { $in: messageIds },
-      recipient: userId,
-      read: false
-    },
-    {
-      read: true,
-      readAt: new Date()
-    }
+    { _id: { $in: messageIds }, recipient: userId, read: false },
+    { read: true, readAt: new Date() }
   );
 };
 
-// Static method to mark as delivered
+// Mark as delivered (bulk)
 messageSchema.statics.markAsDelivered = function(messageIds, userId) {
   return this.updateMany(
-    {
-      _id: { $in: messageIds },
-      recipient: userId,
-      delivered: false
-    },
-    {
-      delivered: true,
-      deliveredAt: new Date()
-    }
+    { _id: { $in: messageIds }, recipient: userId, delivered: false },
+    { delivered: true, deliveredAt: new Date() }
   );
 };
 
-// Method to mark as read
+// ---- Instance methods ----
+
+// Mark a single message as read
 messageSchema.methods.markAsRead = function() {
   if (!this.read) {
     this.read = true;
@@ -200,7 +159,7 @@ messageSchema.methods.markAsRead = function() {
   return Promise.resolve(this);
 };
 
-// Method to mark as delivered
+// Mark a single message as delivered
 messageSchema.methods.markAsDelivered = function() {
   if (!this.delivered) {
     this.delivered = true;
@@ -210,7 +169,7 @@ messageSchema.methods.markAsDelivered = function() {
   return Promise.resolve(this);
 };
 
-// Method to soft delete
+// Soft delete
 messageSchema.methods.softDelete = function(userId) {
   this.deleted = true;
   this.deletedAt = new Date();
@@ -218,25 +177,31 @@ messageSchema.methods.softDelete = function(userId) {
   return this.save();
 };
 
-// Method to add reaction
+// Add reaction
 messageSchema.methods.addReaction = function(userId, emoji) {
-  // Remove existing reaction from this user
   this.reactions = this.reactions.filter(r => r.user.toString() !== userId.toString());
-  
-  // Add new reaction
-  this.reactions.push({
-    user: userId,
-    emoji: emoji,
-    createdAt: new Date()
-  });
-  
+  this.reactions.push({ user: userId, emoji, createdAt: new Date() });
   return this.save();
 };
 
-// Method to remove reaction
+// Remove reaction
 messageSchema.methods.removeReaction = function(userId) {
   this.reactions = this.reactions.filter(r => r.user.toString() !== userId.toString());
   return this.save();
 };
 
+// ---- Plugin support (fix for your error) ----
+try {
+  if (mongoose.plugins && Array.isArray(mongoose.plugins)) {
+    mongoose.plugins.forEach((pluginConfig, index) => {
+      if (pluginConfig && typeof pluginConfig.fn === 'function') {
+        messageSchema.plugin(pluginConfig.fn, pluginConfig.opts || {});
+      }
+    });
+  }
+} catch (error) {
+  console.warn('Plugin application failed for Message model:', error.message);
+}
+
 module.exports = mongoose.model('Message', messageSchema);
+// ================= Plugin Fix =================
