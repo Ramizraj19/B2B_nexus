@@ -1,106 +1,112 @@
-const errorHandler = (err, req, res, next) => {
-  let error = { ...err };
-  error.message = err.message;
+const logger = require('../utils/logger');
 
-  // Log error for debugging
-  console.error('Error:', {
-    message: err.message,
-    stack: err.stack,
-    url: req.originalUrl,
+// Global Error Handler
+const errorHandler = (err, req, res, next) => {
+  // Log the error
+  logger.error(`${err.name || 'Error'}: ${err.message}`, {
     method: req.method,
+    url: req.originalUrl,
     ip: req.ip,
+    stack: err.stack,
     userAgent: req.get('User-Agent'),
     timestamp: new Date().toISOString()
   });
 
+  let statusCode = err.statusCode || 500;
+  let message = err.message || 'Internal Server Error';
+
+  // ---- Specific Error Handling ----
+
   // Mongoose bad ObjectId
   if (err.name === 'CastError') {
-    const message = 'Resource not found';
-    error = { message, statusCode: 404 };
+    statusCode = 404;
+    message = 'Resource not found';
   }
 
   // Mongoose duplicate key
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue)[0];
-    const value = err.keyValue[field];
-    const message = `${field} '${value}' already exists`;
-    error = { message, statusCode: 400 };
+    message = `${field} '${err.keyValue[field]}' already exists`;
+    statusCode = 400;
   }
 
   // Mongoose validation error
   if (err.name === 'ValidationError') {
-    const message = Object.values(err.errors).map(val => val.message).join(', ');
-    error = { message, statusCode: 400 };
+    statusCode = 400;
+    message = 'Validation failed';
+    err.details = Object.values(err.errors).map(val => val.message);
   }
 
   // JWT errors
   if (err.name === 'JsonWebTokenError') {
-    const message = 'Invalid token';
-    error = { message, statusCode: 401 };
+    statusCode = 401;
+    message = 'Invalid token';
   }
 
   if (err.name === 'TokenExpiredError') {
-    const message = 'Token expired';
-    error = { message, statusCode: 401 };
+    statusCode = 401;
+    message = 'Token expired';
   }
 
-  // Multer errors
+  // Multer upload errors
   if (err.code === 'LIMIT_FILE_SIZE') {
-    const message = 'File too large';
-    error = { message, statusCode: 400 };
+    statusCode = 400;
+    message = 'File too large';
   }
 
   if (err.code === 'LIMIT_FILE_COUNT') {
-    const message = 'Too many files';
-    error = { message, statusCode: 400 };
+    statusCode = 400;
+    message = 'Too many files uploaded';
   }
 
   if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-    const message = 'Unexpected file field';
-    error = { message, statusCode: 400 };
+    statusCode = 400;
+    message = 'Unexpected file field';
   }
 
   // Cloudinary errors
   if (err.http_code) {
-    const message = err.message || 'File upload failed';
-    error = { message, statusCode: err.http_code };
+    statusCode = err.http_code;
+    message = err.message || 'File upload failed';
   }
 
-  // Stripe errors
+  // Stripe payment errors
   if (err.type && err.type.startsWith('Stripe')) {
-    const message = err.message || 'Payment processing error';
-    error = { message, statusCode: 400 };
+    statusCode = 400;
+    message = err.message || 'Payment processing error';
   }
 
-  // Rate limiting errors
+  // Rate limiting
   if (err.status === 429) {
-    const message = 'Too many requests, please try again later';
-    error = { message, statusCode: 429 };
+    statusCode = 429;
+    message = 'Too many requests, please try again later';
   }
 
-  // Default error
-  const statusCode = error.statusCode || err.statusCode || 500;
-  const message = error.message || err.message || 'Internal Server Error';
-
-  // Don't send error details in production
+  // ---- Final Response ----
   const response = {
     success: false,
-    message,
-    ...(process.env.NODE_ENV === 'development' && {
-      error: err.message,
-      stack: err.stack
-    })
+    error: {
+      code: err.code || null,
+      message:
+        process.env.NODE_ENV === 'production'
+          ? (statusCode >= 500 ? 'Something went wrong' : message)
+          : message,
+      ...(err.details && { details: err.details })
+    },
   };
+
+  if (process.env.NODE_ENV !== 'production') {
+    response.error.stack = err.stack;
+  }
 
   res.status(statusCode).json(response);
 };
 
-// Async error wrapper
-const asyncHandler = (fn) => (req, res, next) => {
+// Async wrapper to handle async errors
+const asyncHandler = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
-};
 
-// Not found middleware
+// 404 Not Found Middleware
 const notFound = (req, res, next) => {
   const error = new Error(`Route not found - ${req.originalUrl}`);
   error.statusCode = 404;

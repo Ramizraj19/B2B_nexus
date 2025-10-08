@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Helmet } from 'react-helmet';
 import Navigation from '../../components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -105,119 +106,127 @@ const ProductsPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation />
+    <>
+      <Helmet>
+        <title>Products | B2B Nexus</title>
+        <meta name="description" content="Browse and shop quality products from verified sellers" />
+        <meta name="keywords" content="products, procurement, b2b, marketplace, business supplies" />
+      </Helmet>
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Products</h1>
-          <p className="text-gray-600">Browse and discover products from verified sellers</p>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <Navigation />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Products</h1>
+            <p className="text-gray-600">Browse and discover products from verified sellers</p>
+          </div>
 
-        {/* Search and Filters */}
-        <div className="mb-6 space-y-4">
-          <form onSubmit={handleSearch} className="flex gap-4">
-            <Input
-              type="text"
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
-            />
-            <Button type="submit">Search</Button>
-          </form>
-          
-          {/* Category Filter */}
-          {categories.length > 0 && (
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant={selectedCategory === '' ? 'default' : 'outline'}
-                onClick={() => handleCategoryChange('')}
-                size="sm"
-              >
-                All Categories
-              </Button>
-              {categories.map((category) => (
+          {/* Search and Filters */}
+          <div className="mb-6 space-y-4">
+            <form onSubmit={handleSearch} className="flex gap-4">
+              <Input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-md"
+              />
+              <Button type="submit">Search</Button>
+            </form>
+            
+            {/* Category Filter */}
+            {categories.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
                 <Button
-                  key={category._id}
-                  variant={selectedCategory === category._id ? 'default' : 'outline'}
-                  onClick={() => handleCategoryChange(category._id)}
+                  variant={selectedCategory === '' ? 'default' : 'outline'}
+                  onClick={() => handleCategoryChange('')}
                   size="sm"
                 >
-                  {category.name}
+                  All Categories
                 </Button>
+                {categories.map((category) => (
+                  <Button
+                    key={category._id}
+                    variant={selectedCategory === category._id ? 'default' : 'outline'}
+                    onClick={() => handleCategoryChange(category._id)}
+                    size="sm"
+                  >
+                    {category.name}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Products Grid */}
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <ProductSkeleton key={index} />
               ))}
             </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProducts.map((product) => (
+                  <Card key={product._id} className="bg-white hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="text-lg">{product.name}</CardTitle>
+                      <CardDescription>
+                        {product.category?.name || 'Uncategorized'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-600 mb-4 line-clamp-2">
+                        {product.description}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl font-bold text-green-600">
+                          ${product.price?.current || product.price || 0}
+                        </span>
+                        <Button>View Details</Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {filteredProducts.length === 0 && !loading && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg">No products found matching your search.</p>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center mt-8">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="flex items-center px-4">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
-
-        {/* Products Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <ProductSkeleton key={index} />
-            ))}
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-                <Card key={product._id} className="bg-white hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="text-lg">{product.name}</CardTitle>
-                    <CardDescription>
-                      {product.category?.name || 'Uncategorized'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 mb-4 line-clamp-2">
-                      {product.description}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl font-bold text-green-600">
-                        ${product.price?.current || product.price || 0}
-                      </span>
-                      <Button>View Details</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {filteredProducts.length === 0 && !loading && (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">No products found matching your search.</p>
-              </div>
-            )}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center mt-8">
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <span className="flex items-center px-4">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
       </div>
-    </div>
+    </>
   );
 };
 

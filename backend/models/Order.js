@@ -138,6 +138,20 @@ const orderSchema = new mongoose.Schema({
       default: 0
     }
   },
+  paymentInfo: {
+    paymentMethod: {
+      type: String,
+      enum: ['stripe', 'razorpay', 'bank_transfer'],
+      required: true
+    },
+    paymentIntentId: String,
+    status: {
+      type: String,
+      enum: ['pending', 'paid', 'failed', 'refunded'],
+      default: 'pending'
+    },
+    transactionId: String
+  },
   billingAddress: {
     firstName: {
       type: String,
